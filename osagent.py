@@ -28,7 +28,7 @@ common_cli_opts = [
                 help='run in background'),
     cfg.BoolOpt('debug',
                 short='g',
-                default=True,
+                default=False,
                 help='run in debug mode'),
     ]
 
@@ -96,23 +96,22 @@ if __name__ == '__main__':
     config_init()
     logger.init_logger(conf)
     log.info('======== Launching OSAGENT Adapter ========')
-
+    
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGHUP, signal_handler)
 
     if conf.daemon and os.getppid() != 1:
         daemonize()
-
     try:
         init_keystone()
         app = API()
 
-        port = conf.heat_api.bind_port
-        host = conf.heat_api.bind_host
-        log.info(('Starting Heat REST API on %(host)s:%(port)s'),
+        port = conf.agent_api.bind_port
+        host = conf.agent_api.bind_host
+        log.info(('Starting OpenStack Agent REST API on %(host)s:%(port)s'),
                          {'host': host, 'port': port})
 
-        server = wsgiserver.Server('heat_api', conf.heat_api)
+        server = wsgiserver.Server('agent_api', conf.agent_api)
         server.start(app, default_port=port)
         server.wait()
     except KeyboardInterrupt as e:
