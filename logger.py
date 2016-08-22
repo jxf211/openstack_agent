@@ -19,7 +19,7 @@ class LcTimedRotatingFileHandler(TimedRotatingFileHandler):
 
 def init_logger(args=None):
     handler = LcTimedRotatingFileHandler(
-        '/var/log/osagent.log', when='midnight')
+        './osagent.log', when='midnight')
     #handler = logging.StreamHandler()
     formatter = logging.Formatter('%(asctime)s T%(thread)d-%(threadName)s '
                                   '%(levelname)s %(module)s.'
@@ -40,6 +40,8 @@ def init_logger(args=None):
         'glance': logging.DEBUG,
         'exception':logging.DEBUG,
         'serializers':logging.DEBUG,
+        'wsgiserver':logging.DEBUG,
+        'eventlet.wsgi.server':logging.DEBUG,
         '__main__': logging.DEBUG,
     }
     for logger, level in _log_levels.items():
