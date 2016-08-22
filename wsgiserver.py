@@ -54,8 +54,20 @@ api_opts = [
                       'the time in seconds that the connection must be idle '
                       'before TCP starts sending keepalive probes.')),
 ]
+conf.register_opts(api_opts, group="agent_api")
 
-conf.register_opts(api_opts, group="heat_api")
+wsgi_elt_opts = [
+    cfg.BoolOpt('wsgi_keep_alive',
+                default=True,
+                help=("If False, closes the client socket connection "
+                       "explicitly.")),
+    cfg.IntOpt('client_socket_timeout', default=900,
+               help=("Timeout for client connections' socket operations. "
+                      "If an incoming connection is idle for this number of "
+                      "seconds it will be closed. A value of '0' means "
+                      "wait forever.")),
+]
+conf.register_opts(wsgi_elt_opts, group="eventlet_opts")
 
 def get_worker_count():
     """Utility to get the default worker count.
@@ -125,7 +137,8 @@ class Server(object):
     
     def __init__(self, name, conf, threads=1000):
         os.umask(0o27)
-        self._logger = logging.getLogger("eventlet.wsgi.server")
+        self._logger = logging.getLogger("wsgi.server")
+
         self.name = name
         self.threads = threads
         self.children = set()
@@ -197,6 +210,7 @@ class Server(object):
                 if os.WIFEXITED(status) or os.WIFSIGNALED(status):
                     self._remove_children(pid)
                     self._verify_and_respawn_children(pid, status)
+                    log.info("pid %d, status:%d", pid, status)
             except OSError as err:
                 if err.errno not in (errno.EINTR, errno.ECHILD):
                     raise
@@ -392,17 +406,17 @@ class Server(object):
         eventlet.hubs.use_hub('poll')
         eventlet.patcher.monkey_patch(all=False, socket=True)
         self.pool = eventlet.GreenPool(size=self.threads)
-        #socket_timeout = conf.eventlet_opts.client_socket_timeout or None
+        socket_timeout = cfg.CONF.eventlet_opts.client_socket_timeout or None
         try:
             eventlet.wsgi.server(
                 self.sock,
                 self.application,
                 custom_pool=self.pool,
                 url_length_limit=URL_LENGTH_LIMIT,
-                log=self._logger,
-                debug=conf.debug,
-                #keepalive=cfg.CONF.eventlet_opts.wsgi_keep_alive,
-                #socket_timeout=socket_timeout
+                #log=self._logger,
+                debug=cfg.CONF.debug,
+                keepalive=cfg.CONF.eventlet_opts.wsgi_keep_alive,
+                socket_timeout=socket_timeout
                 )
         except socket.error as err:
             if err[0] != errno.EINVAL:

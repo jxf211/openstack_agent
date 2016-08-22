@@ -355,7 +355,7 @@ vmjson = {
         ]
     }
 def create_stack():
-    url = "http://172.31.0.11:20019/v1/stack/" 
+    url = "http://172.31.0.11:20018/v1/stack/" 
     headers = {'content-type': 'application/json'}
     payload = json.dumps(vmjson)
     print payload 

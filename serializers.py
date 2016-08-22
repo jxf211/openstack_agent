@@ -2,6 +2,7 @@ from lxml import etree
 import json
 import six
 import logging
+import datetime
 
 log = logging.getLogger(__name__)
 

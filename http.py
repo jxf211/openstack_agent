@@ -21,9 +21,9 @@ def req_get(url):
             resp = r.json()
         log.debug('status_code=%s' % r.status_code)
         return r.status_code, resp
-    except Exception as e:
-        log.error(e)
-        return HTTP_INTERNAL_SERVER_ERROR, {}
+    except Exception as err:
+        log.error(err)
+        return HTTP_INTERNAL_SERVER_ERROR, err
 
 def req_post(url, json_body=None):
     try:
@@ -45,9 +45,9 @@ def req_post(url, json_body=None):
             log.error('status_code=%s' % r.status_code)
         return r.status_code, {}
         '''
-    except Exception as e:
-        log.error(e)
-        return HTTP_INTERNAL_SERVER_ERROR, {}
+    except Exception as err:
+        log.error(err)
+        return HTTP_INTERNAL_SERVER_ERROR, err
 
 def req_delete(url):
     try:
@@ -60,8 +60,8 @@ def req_delete(url):
         if r.status_code not in HTTP_OK_NORESP:   
             log.error('status_code=%s' % r.status_code)
         return r.status_code, {}
-    except Exception as e:
-        log.error(e)
-        return HTTP_INTERNAL_SERVER_ERROR, {}
+    except Exception as err:
+        log.error(err)
+        return HTTP_INTERNAL_SERVER_ERROR, err
 
         

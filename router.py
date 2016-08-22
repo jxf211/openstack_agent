@@ -14,11 +14,11 @@ from lxml import etree
 from heat import HeatController
 from info import InfoController
 import exception
-from oslo_utils import encodeutils
-import oslo_i18n as i18n
 import serializers
 from const import HTTP_INTERNAL_SERVER_ERROR
 from host import HostController
+import eventlet
+eventlet.monkey_patch(os=False)
 
 log = logging.getLogger(__name__)
 
@@ -104,17 +104,6 @@ class Request(webob.Request):
         else:
             return content_type
 
-    def best_match_language(self):
-        """Determines best available locale from the Accept-Language header.
-
-        :returns: the best language match or None if the 'Accept-Language'
-                  header was not available in the request.
-        """
-        if not self.accept_language:
-            return None
-        all_languages = i18n.get_available_languages('osagent')
-        return self.accept_language.best_match(all_languages)
-
 class Resource(object):
     def __init__(self, controller, deserializer, serializer=None):
         self.controller = controller
@@ -142,8 +131,7 @@ class Resource(object):
             log.error(('Exception handling resource: %s'), err)
             msg = ('The server could not comply with the request since '
                     'it is either malformed or otherwise incorrect.')
-            err = webob.exc.HTTPBadRequest(msg)
-            raise Exception("Error: %s" % err)
+            raise webob.exc.HTTPBadRequest(msg)
         except webob.exc.HTTPException as err:
             if isinstance(err, webob.exc.HTTPError):
                 raise
@@ -155,6 +143,7 @@ class Resource(object):
             raise
         except Exception as err:
             log.error(err)
+            render_response(err, HTTP_INTERNAL_SERVER_ERROR)
             raise Exception("Error: %s" % err) 
         
         try:
@@ -170,6 +159,7 @@ class Resource(object):
             return response
         except Exception as err:
             log.error(err)
+            render_response(err, HTTP_INTERNAL_SERVER_ERROR)
             raise Exception("Error:%s", err)
 
     def dispatch(self, obj, action, *args, **kwargs):
