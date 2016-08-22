@@ -8,17 +8,28 @@ import argparse
 from oslo.config import cfg
 import logger
 from keystone import init_keystone
-from server import Server
-#from router import Router
-#from controller import Controller
+#from server import Server
 from const import OSAGENT_CFG
 import signal
-from router import API 
+from router import API
+import wsgiserver
+
 conf_opts = [
     cfg.StrOpt('bind_host', default='0.0.0.0',
                help="The host IP to bind to"),
     cfg.IntOpt('bind_port', default=20018,
                help="The port to bind to"),
+    ]
+
+common_cli_opts = [
+    cfg.BoolOpt('daemon',
+                short='d',
+                default=False,
+                help='run in background'),
+    cfg.BoolOpt('debug',
+                short='g',
+                default=True,
+                help='run in debug mode'),
     ]
 
 conf = cfg.CONF
@@ -69,6 +80,7 @@ def config_init():
     load cfg
     """
     conf.register_opts(conf_opts)
+    conf.register_cli_opts(common_cli_opts)
     conf(default_config_files=[OSAGENT_CFG])
     if not conf.config_file:
         sys.exit(1)
@@ -81,31 +93,27 @@ def signal_handler(sig, frame):
         log.info("ignore SIGHUP.... ")
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--daemon", help="run in background",
-                        action="store_true")
-    parser.add_argument("-g", "--debug", help="run in debug mode",
-                        action="store_true")
-    args = parser.parse_args()
-
-    logger.init_logger(args)
-
+    config_init()
+    logger.init_logger(conf)
     log.info('======== Launching OSAGENT Adapter ========')
 
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGHUP, signal_handler)
 
-    if args.daemon and os.getppid() != 1:
+    if conf.daemon and os.getppid() != 1:
         daemonize()
 
     try:
-        config_init()
         init_keystone()
-        #controller = Controller()
-        #app = Router(controller)
         app = API()
-        server = Server(app, host=conf.bind_host, port=conf.bind_port)
-        server.start()
+
+        port = conf.heat_api.bind_port
+        host = conf.heat_api.bind_host
+        log.info(('Starting Heat REST API on %(host)s:%(port)s'),
+                         {'host': host, 'port': port})
+
+        server = wsgiserver.Server('heat_api', conf.heat_api)
+        server.start(app, default_port=port)
         server.wait()
     except KeyboardInterrupt as e:
         log.error(e)
