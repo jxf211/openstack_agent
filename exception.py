@@ -54,3 +54,6 @@ class RequestLimitExceeded(OsagentAPIException):
     title = "Request limit exceeded "
     explanation = 'Request json body limit exceeded  100000'
 
+class SIGHUPInterrupt(Exception):
+    message = "SIGHUPInterrupt"
+    error_code = None
